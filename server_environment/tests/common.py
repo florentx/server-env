@@ -1,8 +1,8 @@
 # Copyright 2018 Camptocamp (https://www.camptocamp.com).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html)
 
-import os
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
 from odoo.tests import common
@@ -15,9 +15,7 @@ class ServerEnvironmentCase(common.TransactionCase):
     @contextmanager
     def set_config_dir(self, path):
         original_dir = server_env._dir
-        if path and not os.path.isabs(path):
-            path = os.path.join(os.path.dirname(__file__), path)
-        server_env._dir = path
+        server_env._dir = path and (Path(__file__).parent / path)
         try:
             yield
         finally:

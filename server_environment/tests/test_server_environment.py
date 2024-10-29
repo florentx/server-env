@@ -1,7 +1,6 @@
 # Copyright 2018 Camptocamp (https://www.camptocamp.com).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html)
 
-import os
 from unittest.mock import patch
 
 from odoo.tools.config import config as odoo_config
@@ -40,15 +39,21 @@ class TestEnv(common.ServerEnvironmentCase):
     def test_default_non_dev_env(self):
         server_env._load_running_env()
         self._test_default(hidden_pwd=True)
+        with self.set_config_dir("non-existent/server_environment_files"):
+            # Invalid configuration dir
+            self.assertRaises(Exception, server_env._load_config)
+        with self.set_config_dir(None):
+            # No "server_environment_files" add-on installed
+            server_env._load_config()
 
     @patch.dict(odoo_config.options, {"running_env": None})
-    @patch.dict(os.environ, {"RUNNING_ENV": "dev"})
+    @patch.dict("os.environ", {"RUNNING_ENV": "dev"})
     def test_default_dev_from_environ(self):
         server_env._load_running_env()
         self._test_default()
 
     @patch.dict(odoo_config.options, {"running_env": None})
-    @patch.dict(os.environ, {"ODOO_STAGE": "dev"})
+    @patch.dict("os.environ", {"ODOO_STAGE": "dev"})
     def test_odoosh_dev_from_environ(self):
         server_env._load_running_env()
         self._test_default()
