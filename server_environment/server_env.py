@@ -6,6 +6,7 @@ import configparser
 import logging
 import os
 from itertools import chain
+from pathlib import Path
 
 from lxml import etree
 
@@ -21,7 +22,7 @@ _logger = logging.getLogger(__name__)
 try:
     from odoo.addons import server_environment_files
 
-    _dir = os.path.dirname(server_environment_files.__file__)
+    _dir = Path(server_environment_files.__file__).parent
 except ImportError:
     _logger.info(
         "not using server_environment_files for configuration, no directory found"
@@ -64,17 +65,6 @@ def _load_running_env():
 _load_running_env()
 
 
-ck_path = None
-if _dir:
-    ck_path = os.path.join(_dir, system_base_config["running_env"])
-
-    if not os.path.exists(ck_path):
-        raise Exception(
-            "Provided server environment does not exist, "
-            f"please add a folder {ck_path}"
-        )
-
-
 def setboolean(obj, attr, _bool=None):
     """Replace the attribute with a boolean."""
     if _bool is None:
@@ -97,24 +87,16 @@ def _escape(s):
     )
 
 
-def _listconf(env_path):
-    """List configuration files in a folder."""
-    files = [
-        os.path.join(env_path, name)
-        for name in sorted(os.listdir(env_path))
-        if name.endswith(".conf")
-    ]
-    return files
-
-
 def _load_config_from_server_env_files(config_p):
-    default = os.path.join(_dir, "default")
-    running_env = os.path.join(_dir, system_base_config["running_env"])
-    if os.path.isdir(default):
-        conf_files = _listconf(default) + _listconf(running_env)
-    else:
-        conf_files = _listconf(running_env)
-
+    default = _dir / "default"
+    running_env = _dir / system_base_config["running_env"]
+    if not running_env.is_dir():
+        raise Exception(
+            "Provided server environment does not exist, "
+            f"please add a folder {running_env}"
+        )
+    conf_files = sorted(default.glob("*.conf")) if default.is_dir() else []
+    conf_files += sorted(running_env.glob("*.conf"))
     try:
         config_p.read(conf_files)
     except Exception as e:
