@@ -45,7 +45,7 @@ _boolean_states = {
 
 def _load_running_env():
     if not system_base_config.get("running_env"):
-        env_running_env = os.environ.get("RUNNING_ENV", os.environ.get("ODOO_STAGE"))
+        env_running_env = os.getenv("RUNNING_ENV") or os.getenv("ODOO_STAGE")
         if env_running_env:
             system_base_config["running_env"] = env_running_env
         else:
@@ -154,22 +154,12 @@ def _load_config():
 serv_config = _load_config()
 
 
-class _Defaults(dict):
-    __slots__ = ()
-
-    def __setitem__(self, key, value):
-        def func(*a):
-            return str(value)
-
-        return dict.__setitem__(self, key, func)
-
-
 class ServerConfiguration(models.TransientModel):
     """Display server configuration."""
 
     _name = "server.config"
     _description = "Display server configuration"
-    _conf_defaults = _Defaults()
+    _conf_defaults = {}
 
     config = Serialized()
 
@@ -201,9 +191,9 @@ class ServerConfiguration(models.TransientModel):
     def _add_columns(cls):
         """Add columns to model dynamically"""
         cols = chain(
-            list(cls._get_base_cols().items()),
-            list(cls._get_env_cols().items()),
-            list(cls._get_system_cols().items()),
+            cls._get_base_cols().items(),
+            cls._get_env_cols().items(),
+            cls._get_system_cols().items(),
         )
         for col, value in cols:
             col_name = col.replace(".", "_")
@@ -328,5 +318,5 @@ class ServerConfiguration(models.TransientModel):
             if not self.show_passwords and self._is_secret(key=key):
                 res[key] = "**********"
             else:
-                res[key] = self._conf_defaults[key]()
+                res[key] = str(self._conf_defaults[key])
         return res
